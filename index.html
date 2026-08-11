@@ -515,20 +515,40 @@ function renderCardToCanvas(card, artImg) {
 }
 
 function prepareForPrinter(canvas, printerWidth) {
-  // For wide printers (M04S), rotate 90 degrees and top-align
-  if (printerWidth > 576) {
+  // M04AS with 53mm paper: pad the 576-dot Momir layout
+  // to the M04AS's 600-dot working print width.
+  if (printerWidth === 600) {
+    const padded = document.createElement('canvas');
+    padded.width = 600;
+    padded.height = canvas.height;
+
+    const ctx = padded.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, padded.width, padded.height);
+
+    // Center the existing 576-dot card in the 600-dot print area.
+    ctx.drawImage(canvas, 12, 0);
+
+    return padded;
+  }
+
+  // Wide 110mm M04S/M04AS paper
+  if (printerWidth > 600) {
     const rotated = document.createElement('canvas');
     rotated.width = printerWidth;
-    rotated.height = canvas.width; // original width becomes height after rotation
+    rotated.height = canvas.width;
+
     const ctx = rotated.getContext('2d');
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, rotated.width, rotated.height);
-    // Top-align the rotated card for narrower paper compatibility
+
     ctx.translate(canvas.height, 0);
     ctx.rotate(Math.PI / 2);
     ctx.drawImage(canvas, 0, 0);
+
     return rotated;
   }
+
   return canvas;
 }
 
@@ -614,7 +634,7 @@ let activeFinCmds = CMD_FIN_M02;
 function detectPrinterProfile(deviceName) {
   const name = (deviceName || '').toUpperCase();
   if (name.includes('M04')) {
-    activePrintWidth = 576;
+    activePrintWidth = 600;
     activeInitCmds = INIT_M04;
     activeFinCmds = FIN_M04;
     activeSendProfile = SEND_PROFILES.M04S;
